@@ -1,7 +1,7 @@
 var React = require('react');
 var AppActions = require('../actions/AppActions');
 
-var App = React.createClass({
+var AddForm = React.createClass({
     handleSubmit: function(e) {
         e.preventDefault();
         var contact = {
@@ -32,4 +32,4 @@ var App = React.createClass({
     }
 });
 
-module.exports = App;
+module.exports = AddForm;

@@ -20053,16 +20053,28 @@ var AppActions = {
             actionType: AppConstants.REMOVE_CONTACT,
             contactId: contactId
         });
-    }
+    },
+    editContact: function(contact) {
+        AppDispatcher.handleViewAction({
+            actionType: AppConstants.EDIT_CONTACT,
+            contact: contact
+        });
+    },
+    updateContact: function(contact) {
+        AppDispatcher.handleViewAction({
+            actionType: AppConstants.UPDATE_CONTACT,
+            contact: contact
+        });
+    },
 };
 
 module.exports = AppActions;
 
-},{"../constants/AppConstants":170,"../dispatcher/AppDispatcher":171}],166:[function(require,module,exports){
+},{"../constants/AppConstants":171,"../dispatcher/AppDispatcher":172}],166:[function(require,module,exports){
 var React = require('react');
 var AppActions = require('../actions/AppActions');
 
-var App = React.createClass({displayName: "App",
+var AddForm = React.createClass({displayName: "AddForm",
     handleSubmit: function(e) {
         e.preventDefault();
         var contact = {
@@ -20093,7 +20105,7 @@ var App = React.createClass({displayName: "App",
     }
 });
 
-module.exports = App;
+module.exports = AddForm;
 
 },{"../actions/AppActions":165,"react":164}],167:[function(require,module,exports){
 var React = require('react');
@@ -20101,10 +20113,12 @@ var AppActions = require('../actions/AppActions');
 var AppStore = require('../stores/AppStore');
 var AddForm = require('./AddForm');
 var ContactList = require('./ContactList');
+var EditForm = require('./EditForm');
 
 function getAppState() {
     return {
-        contacts: AppStore.getContacts()
+        contacts: AppStore.getContacts(),
+        contactToEdit: AppStore.getContactToEdit()
     };
 }
 
@@ -20122,10 +20136,14 @@ var App = React.createClass({displayName: "App",
         this.setState(getAppState());
     },
     render: function() {
-        console.log(this.state.contacts);
+        if (this.state.contactToEdit == '') {
+            var form = React.createElement(AddForm, null);
+        } else {
+            var form = React.createElement(EditForm, {contactToEdit: this.state.contactToEdit});
+        }
         return (
             React.createElement("div", null, 
-                React.createElement(AddForm, null), 
+                form, 
                 React.createElement(ContactList, {contacts: this.state.contacts})
             )
         );
@@ -20134,7 +20152,7 @@ var App = React.createClass({displayName: "App",
 
 module.exports = App;
 
-},{"../actions/AppActions":165,"../stores/AppStore":173,"./AddForm":166,"./ContactList":169,"react":164}],168:[function(require,module,exports){
+},{"../actions/AppActions":165,"../stores/AppStore":174,"./AddForm":166,"./ContactList":169,"./EditForm":170,"react":164}],168:[function(require,module,exports){
 var React = require('react');
 var AppActions = require('../actions/AppActions');
 var AppStore = require('../stores/AppStore');
@@ -20146,19 +20164,21 @@ var Contact = React.createClass({displayName: "Contact",
                 React.createElement("td", null, this.props.contact.name), 
                 React.createElement("td", null, this.props.contact.phone), 
                 React.createElement("td", null, this.props.contact.email), 
-                React.createElement("td", null, React.createElement("a", {href: "#", className: "btn btn-default", onClick: this.handleEdit}, "Edit")), 
-                React.createElement("td", null, React.createElement("a", {href: "#", className: "btn btn-danger", onClick: this.handleRemove.bind(this, this.props.contact.id)}, "Remove"))
+                React.createElement("td", null, React.createElement("a", {href: "#", className: "btn btn-default", onClick: this.handleEdit.bind(this, this.props.contact)}, "Edit"), "  ", React.createElement("a", {href: "#", className: "btn btn-danger", onClick: this.handleRemove.bind(this, this.props.contact.id)}, "Remove"))
             )
         );
     },
     handleRemove: function(i, j) {
         AppActions.removeContact(i);
+    },
+    handleEdit: function(i, j) {
+        AppActions.editContact(i);
     }
 });
 
 module.exports = Contact;
 
-},{"../actions/AppActions":165,"../stores/AppStore":173,"react":164}],169:[function(require,module,exports){
+},{"../actions/AppActions":165,"../stores/AppStore":174,"react":164}],169:[function(require,module,exports){
 var React = require('react');
 var AppActions = require('../actions/AppActions');
 var AppStore = require('../stores/AppStore');
@@ -20195,14 +20215,60 @@ var ContactList = React.createClass({displayName: "ContactList",
 
 module.exports = ContactList;
 
-},{"../actions/AppActions":165,"../stores/AppStore":173,"./Contact":168,"react":164}],170:[function(require,module,exports){
+},{"../actions/AppActions":165,"../stores/AppStore":174,"./Contact":168,"react":164}],170:[function(require,module,exports){
+var React = require('react');
+var AppActions = require('../actions/AppActions');
+
+var EditForm = React.createClass({displayName: "EditForm",
+    render: function() {
+        return (
+            React.createElement("div", {className: "well"}, 
+                React.createElement("h3", null, "Edit Contact"), 
+                React.createElement("form", {onSubmit: this.handleSubmit}, 
+                    React.createElement("div", {className: "form-group"}, 
+                        React.createElement("input", {type: "text", ref: "name", onChange: this.handleChange.bind(this, 'name'), value: this.props.contactToEdit.name, className: "form-control", placeholder: "Add Name..."})
+                    ), 
+                    React.createElement("div", {className: "form-group"}, 
+                        React.createElement("input", {type: "text", ref: "phone", onChange: this.handleChange.bind(this, 'phone'), value: this.props.contactToEdit.phone, className: "form-control", placeholder: "Add Phone..."})
+                    ), 
+                    React.createElement("div", {className: "form-group"}, 
+                        React.createElement("input", {type: "text", ref: "email", onChange: this.handleChange.bind(this, 'email'), value: this.props.contactToEdit.email, className: "form-control", placeholder: "Add Email..."})
+                    ), 
+                    React.createElement("button", {type: "submit", className: "btn btn-primary"}, "Submit")
+                )
+            )
+        );
+    },
+    handleChange: function(fieldName, event) {
+        var newState = event.target.value;
+        var selected = this.state.selected;
+        selected.name = newState;
+        this.setState({selected: selected});
+    },
+    handleSubmit: function(e) {
+        e.preventDefault();
+        var contact = {
+            id: this.props.contactToEdit.id,
+            name: this.refs.name.value.trim(),
+            phone: this.refs.phone.value.trim(),
+            email: this.refs.email.value.trim()
+        };
+        AppActions.updateContact(contact);
+    }
+});
+
+module.exports = EditForm;
+
+},{"../actions/AppActions":165,"react":164}],171:[function(require,module,exports){
 module.exports = {
     SAVE_CONTACT: "SAVE_CONTACT",
     RECEIVE_CONTACTS: "RECEIVE_CONTACTS",
-    REMOVE_CONTACT: "REMOVE_CONTACT"
+    REMOVE_CONTACT: "REMOVE_CONTACT",
+    EDIT_CONTACT: "EDIT_CONTACT",
+    UPDATE_CONTACT: "UPDATE_CONTACT"
 };
 
-},{}],171:[function(require,module,exports){
+},{}],172:[function(require,module,exports){
 var Dispatcher = require('flux').Dispatcher;
 var assign = require('object-assign');
 var AppDispatcher = assign(new Dispatcher(), {
@@ -20217,7 +20283,7 @@ var AppDispatcher = assign(new Dispatcher(), {
 
 module.exports = AppDispatcher;
 
-},{"flux":4,"object-assign":7}],172:[function(require,module,exports){
+},{"flux":4,"object-assign":7}],173:[function(require,module,exports){
 var React = require('react');
 var ReactDOM = require('react-dom');
 var App = require('./components/App');
@@ -20230,7 +20296,7 @@ ReactDOM.render(
     document.getElementById('app')
 );
 
-},{"./components/App":167,"./utils/appAPI":174,"react":164,"react-dom":8}],173:[function(require,module,exports){
+},{"./components/App":167,"./utils/appAPI":175,"react":164,"react-dom":8}],174:[function(require,module,exports){
 var AppDispatcher = require('../dispatcher/AppDispatcher');
 var AppConstants = require('../constants/AppConstants');
 var EventEmitter = require('events').EventEmitter;
@@ -20240,6 +20306,7 @@ var AppAPI = require('../utils/appAPI');
 var CHANGE_EVENT = 'change';
 
 var _contacts = [];
+var _contact_to_edit = '';
 
 var AppStore = assign({}, EventEmitter.prototype, {
     getContacts: function() {
@@ -20251,9 +20318,23 @@ var AppStore = assign({}, EventEmitter.prototype, {
     setContacts: function(contacts) {
         _contacts = contacts;
     },
-    removeContact: function (contactId) {
+    removeContact: function(contactId) {
         var index = _contacts.findIndex(x => x.id === contactId);
         _contacts.splice(index, 1);
+    },
+    setContactToEdit: function(contact) {
+        _contact_to_edit = contact;
+    },
+    getContactToEdit: function() {
+        return _contact_to_edit;
+    },
+    updateContact: function(contact) {
+        for (i=0; i<_contacts.length; i++) {
+            if (_contacts[i].id == contact.id) {
+                _contacts.splice(i,1);
+                _contacts.push(contact);
+            }
+        }
     },
     emitChange: function() {
         this.emit(CHANGE_EVENT);
@@ -20295,6 +20376,21 @@ AppDispatcher.register(function(payload){
             // Emit change
             AppStore.emit(CHANGE_EVENT);
             break;
+        case AppConstants.EDIT_CONTACT:
+            // Store remove
+            AppStore.setContactToEdit(action.contact);
+            // Emit change
+            AppStore.emit(CHANGE_EVENT);
+            break;
+        case AppConstants.UPDATE_CONTACT:
+            console.log('Updating contact...');
+            // Store update
+            AppStore.updateContact(action.contact);
+            // API update
+            AppAPI.updateContact(action.contact);
+            // Emit change
+            AppStore.emit(CHANGE_EVENT);
+            break;
     }
 
     return true;
@@ -20302,7 +20398,7 @@ AppDispatcher.register(function(payload){
 
 module.exports = AppStore;
 
-},{"../constants/AppConstants":170,"../dispatcher/AppDispatcher":171,"../utils/appAPI":174,"events":1,"object-assign":7}],174:[function(require,module,exports){
+},{"../constants/AppConstants":171,"../dispatcher/AppDispatcher":172,"../utils/appAPI":175,"events":1,"object-assign":7}],175:[function(require,module,exports){
 var AppActions = require('../actions/AppActions');
 var Firebase = require('firebase');
 
@@ -20332,7 +20428,17 @@ module.exports = {
     removeContact: function(contactId) {
         this.firebaseRef = new Firebase('https://contactlist1234.firebaseio.com/contacts/'+contactId);
         this.firebaseRef.remove();
+    },
+    updateContact: function(contact) {
+        var id = contact.id;
+        var updatedContact = {
+            name: contact.name,
+            phone: contact.phone,
+            email: contact.email
+        };
+        this.firebaseRef = new Firebase('https://contactlist1234.firebaseio.com/contacts/'+contact.id+'/contact');
+        this.firebaseRef.update(updatedContact);
     }
 };
 
-},{"../actions/AppActions":165,"firebase":3}]},{},[172]);
+},{"../actions/AppActions":165,"firebase":3}]},{},[173]);
